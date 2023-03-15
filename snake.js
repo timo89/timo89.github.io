@@ -26,10 +26,7 @@ window.onload = function () {
         direction: "right",
     };
 
-    let food = {
-        x: Math.floor(Math.random() * boardSizeX),
-        y: Math.floor(Math.random() * boardSizeY),
-    };
+
 
 // Generate a random lake shape
 function generateLakeShape() {
@@ -65,6 +62,23 @@ function createRandomLake() {
 // Create a few random lakes
 const lakes = [createRandomLake(), createRandomLake(), createRandomLake()];
 
+function generateFood() {
+    let x, y;
+    do {
+        x = Math.floor(Math.random() * boardSizeX);
+        y = Math.floor(Math.random() * boardSizeY);
+    } while (isPositionInsideLake(x, y));
+
+    const hue = Math.floor(Math.random() * (60 - 0 + 1) + 0); // Random hue between 0 (red) and 60 (yellow)
+    const saturation = Math.floor(Math.random() * (100 - 50 + 1) + 50); // Random saturation between 50% and 100%
+    const lightness = Math.floor(Math.random() * (70 - 40 + 1) + 40); // Random lightness between 40% and 70%
+
+    const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+    return { x, y, color };
+}
+
+
 
 function drawLake(lake) {
     lake.shapes.forEach((shape) => {
@@ -93,14 +107,63 @@ function isPositionInsideLake(x, y) {
     return false;
 }
 
-function spawnFood() {
-    do {
-        food = {
-            x: Math.floor(Math.random() * boardSizeX),
-            y: Math.floor(Math.random() * boardSizeY),
-        };
-    } while (isPositionInsideLake(food.x, food.y));
+function lerp(a, b, t) {
+    return a + (b - a) * t;
 }
+
+
+function drawSnakeSegment(segment, index) {
+    const x = segment.x * tileSize;
+    const y = segment.y * tileSize;
+
+    // Draw body segment with gradient
+    let gradientPercentage = index / snake.body.length;
+    let greenValue = Math.floor(255 * (1 - gradientPercentage));
+    ctx.fillStyle = `rgb(0, ${greenValue}, 0)`;
+    ctx.fillRect(x, y, tileSize, tileSize);
+
+    // Draw eyes
+    if (index === 0) {
+        ctx.fillStyle = colors.eye;
+        let eyeX1, eyeY1, eyeX2, eyeY2;
+        const eyeSize = tileSize / 5;
+        const eyeOffset = tileSize / 4;
+
+        switch (snake.direction) {
+            case "up":
+                eyeX1 = x + eyeOffset;
+                eyeY1 = y + eyeOffset;
+                eyeX2 = x + tileSize - eyeOffset - eyeSize;
+                eyeY2 = y + eyeOffset;
+                break;
+            case "down":
+                eyeX1 = x + eyeOffset;
+                eyeY1 = y + tileSize - eyeOffset - eyeSize;
+                eyeX2 = x + tileSize - eyeOffset - eyeSize;
+                eyeY2 = y + tileSize - eyeOffset - eyeSize;
+                break;
+            case "left":
+                eyeX1 = x + eyeOffset;
+                eyeY1 = y + eyeOffset;
+                eyeX2 = x + eyeOffset;
+                eyeY2 = y + tileSize - eyeOffset - eyeSize;
+                break;
+            case "right":
+                eyeX1 = x + tileSize - eyeOffset - eyeSize;
+                eyeY1 = y + eyeOffset;
+                eyeX2 = x + tileSize - eyeOffset - eyeSize;
+                eyeY2 = y + tileSize - eyeOffset - eyeSize;
+                break;
+        }
+
+        ctx.fillRect(eyeX1, eyeY1, eyeSize, eyeSize);
+        ctx.fillRect(eyeX2, eyeY2, eyeSize, eyeSize);
+    }
+}
+
+    
+    
+    
 
     function draw() {
         // Clear canvas
@@ -109,32 +172,14 @@ function spawnFood() {
 
         // Draw snake
         snake.body.forEach((segment, index) => {
-            if (index === 0) {
-                // Draw head
-                ctx.beginPath();
-                ctx.arc((segment.x + 0.5) * tileSize, (segment.y + 0.5) * tileSize, tileSize / 2, 0, 2 * Math.PI);
-                ctx.fillStyle = colors.head;
-                ctx.fill();
-
-                // Draw eyes
-                let eyeX = segment.x * tileSize + tileSize * 0.2;
-                let eyeY = segment.y * tileSize + tileSize * 0.2;
-                let eyeSize = tileSize * 0.3;
-                ctx.fillStyle = colors.eye;
-                ctx.fillRect(eyeX, eyeY, eyeSize, eyeSize);
-                ctx.fillRect(eyeX + tileSize * 0.6, eyeY, eyeSize, eyeSize);
-            } else {
-                // Draw body segment with gradient
-                let gradientPercentage = index / snake.body.length;
-                let greenValue = Math.floor(255 * (1 - gradientPercentage));
-                ctx.fillStyle = `rgb(0, ${greenValue}, 0)`;
-                ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize);
-            }
+            drawSnakeSegment(segment, index);
         });
 
         // Draw food
-        ctx.fillStyle = colors.food;
-        ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
+        foods.forEach(food => {
+            ctx.fillStyle = food.color;
+            ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
+        });
 
         // Draw lakes
         ctx.fillStyle = "#00f";
@@ -176,11 +221,25 @@ function spawnFood() {
         snake.body.unshift(head);
 
         // Check for collision with food
-        if (head.x === food.x && head.y === food.y) {
-            createFirework(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2);
-            playEatSound();
-            spawnFood();
-        } else {
+        let ateFood = false;
+        foods.forEach((food, index) => {
+            if (head.x === food.x && head.y === food.y) {
+                ateFood = true;
+                createFirework(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2, food.color); // Pass the food color
+                playFoodSound(food.color);
+
+                // Remove the eaten food from the array
+                foods.splice(index, 1);
+
+                // Add between 0 and 5 new food items
+                const newFoodCount = 1+Math.floor(Math.random() * 2);
+                for (let i = 1; i <= newFoodCount; i++) {
+                    foods.push(generateFood());
+                }
+            }
+        });
+
+        if (!ateFood) {
             snake.body.pop();
         }
 
@@ -235,10 +294,33 @@ function spawnFood() {
         }
     }
 
-    let intervalId = setInterval(() => {
-        move();
-        draw();
-    }, 100);
+    let snakeSpeed = 150;
 
+
+    let lastUpdateTime = 0;
+
+    function gameLoop(currentTime) {
+        if (!isGameOver) {
+            const elapsedTime = currentTime - lastUpdateTime;
+    
+            if (elapsedTime > snakeSpeed) {
+                move();
+                lastUpdateTime = currentTime;
+            }
+        }
+    
+        draw();
+        window.requestAnimationFrame(gameLoop);
+    }
+    
+    
+    
+    
+    window.requestAnimationFrame(gameLoop);
+    
+
+    let foods = [generateFood()];
     document.addEventListener("keydown", changeDirection);
+
+    
 };

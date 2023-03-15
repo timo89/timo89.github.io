@@ -1,19 +1,21 @@
 // Particle class for fireworks and explosions
 class Particle {
-    constructor(x, y, color, life, speed, angle) {
+    constructor(x, y, vx, vy, life, color) {
         this.x = x;
         this.y = y;
-        this.color = color;
+        this.vx = vx;
+        this.vy = vy;
         this.life = life;
-        this.speed = speed;
-        this.angle = angle;
+        this.color = color;
     }
+    
 
     update() {
-        this.x += this.speed * Math.cos(this.angle);
-        this.y += this.speed * Math.sin(this.angle);
+        this.x += this.vx;
+        this.y += this.vy;
         this.life -= 1;
     }
+    
 
     draw(ctx) {
         ctx.fillStyle = this.color;
@@ -23,16 +25,23 @@ class Particle {
 
 // Particle system
 const particles = [];
+const numParticlesPerFirework = 50;
+const maxParticleSpeed = 3;
+const minParticleSpeed = 1;
 
-function createFirework(x, y) {
-    for (let i = 0; i < 100; i++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const speed = Math.random() * 2 + 1;
-        const life = Math.floor(Math.random() * 50 + 50);
-        const color = `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`; // Random bright color
-        particles.push(new Particle(x, y, color, life, speed, angle));
+
+function createFirework(x, y, color) {
+    for (let i = 0; i < numParticlesPerFirework; i++) {
+        const angle = (i / numParticlesPerFirework) * 2 * Math.PI;
+        const speed = Math.random() * maxParticleSpeed + minParticleSpeed;
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        let particle = new Particle(x, y, vx, vy, 50, color);
+        particles.push(particle);
     }
 }
+
+
 
 function createExplosion(x, y) {
     for (let i = 0; i < 100; i++) {
@@ -40,6 +49,9 @@ function createExplosion(x, y) {
         const speed = Math.random() * 4 + 1;
         const life = Math.floor(Math.random() * 30 + 30);
         const color = `hsl(${Math.floor(Math.random() * 60)}, 100%, 50%)`; // Random red-orange color
-        particles.push(new Particle(x, y, color, life, speed, angle));
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        particles.push(new Particle(x, y, vx, vy, life, color));
     }
 }
+

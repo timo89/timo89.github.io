@@ -16,6 +16,37 @@ function playEatSound() {
     oscillator.stop(audioContext.currentTime + 0.5);
 }
 
+function playFoodSound(color) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = "sine";
+
+    let frequency = 440;
+    switch (color) {
+        case "#f00":
+            frequency = 440;
+            break;
+        case "#ffa500":
+            frequency = 523.25;
+            break;
+        case "#ff0":
+            frequency = 659.25;
+            break;
+    }
+
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+
 function playExplosionSound() {
     const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.5, audioContext.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
