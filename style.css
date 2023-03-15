@@ -1,0 +1,21 @@
+canvas {
+	background-color: black;
+	border: 2px solid white;
+	display: block;
+	margin: 0 auto;
+}
+
+.title {
+	display: flex;
+	justify-content: center;
+	margin-top: 20px;
+}
+
+h1 {
+	color: white;
+	margin: 0;
+}
+
+body {
+    overflow: hidden;
+  }
