@@ -15,6 +15,7 @@ window.onload = function () {
         head: "#0f0",
         eye: "#fff",
     };
+    let isGameOver = false;
 
     let snake = {
         body: [
@@ -139,9 +140,23 @@ function spawnFood() {
         ctx.fillStyle = "#00f";
         lakes.forEach(drawLake);
 
+        // Update and draw particles
+        particles.forEach((particle, index) => {
+            particle.update();
+            particle.draw(ctx);
+            if (particle.life <= 0) {
+                particles.splice(index, 1);
+            }
+        });
+
+
     }
 
     function move() {
+        if (isGameOver) {
+            return;
+        }
+
         // Move snake
         let head = { ...snake.body[0] };
         switch (snake.direction) {
@@ -162,6 +177,8 @@ function spawnFood() {
 
         // Check for collision with food
         if (head.x === food.x && head.y === food.y) {
+            createFirework(food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2);
+            playEatSound();
             spawnFood();
         } else {
             snake.body.pop();
@@ -169,23 +186,26 @@ function spawnFood() {
 
         // Check for collision with wall or self
         if (head.x < 0 || head.x >= boardSizeX || head.y < 0 || head.y >= boardSizeY) {
-            clearInterval(intervalId);
-            alert("Game over!");
+            isGameOver = true;
+            createExplosion(head.x * tileSize + tileSize / 2, head.y * tileSize + tileSize / 2);
+            playExplosionSound();
             return;
         }
 
        
         snake.body.slice(1).forEach(segment => {
             if (head.x === segment.x && head.y === segment.y) {
-                clearInterval(intervalId);
-                alert("Game over!");
+                isGameOver = true;
+                createExplosion(head.x * tileSize + tileSize / 2, head.y * tileSize + tileSize / 2);
+                playExplosionSound();
                 return;
             }
         });
 
         if (isPositionInsideLake(head.x, head.y)) {
-            clearInterval(intervalId);
-            alert("Game over!");
+            isGameOver = true;
+            createExplosion(head.x * tileSize + tileSize / 2, head.y * tileSize + tileSize / 2);
+            playExplosionSound();
             return;
         }
     }
